@@ -39,7 +39,7 @@ def recoleccion_eltiempo( no_inicial, no_final, termino):
         #Irse a dormir 
         tiempo_sueno = random.randint(3,12)
         print(f"voy a dormir: {tiempo_sueno} minutos")
-        #time.sleep(tiempo_sueno*60)
+        time.sleep(tiempo_sueno*60)
 
         #Scrape la data de la pagina de ese tema y ese numero de pagina
 
