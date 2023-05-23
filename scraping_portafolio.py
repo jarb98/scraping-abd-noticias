@@ -5,6 +5,8 @@ import random
 import time
 import pymongo
 import os
+from bson.objectid import ObjectId
+
 
 #Arreglar dos cosas de manera inicial
 
@@ -33,7 +35,7 @@ def recoleccion_portafolio( no_inicial, no_final, termino):
         #Irse a dormir 
         tiempo_sueno = random.randint(3,12)
         print(f"voy a dormir: {tiempo_sueno} minutos")
-        time.sleep(tiempo_sueno*60)
+        #time.sleep(tiempo_sueno*60)
 
         #Scrape la data de la pagina de ese tema y ese numero de pagina
 
@@ -47,8 +49,11 @@ def recoleccion_portafolio( no_inicial, no_final, termino):
 
         #Crear un diccionario para subir la data a Mongo
         for element in range(len(fechas_eltiempo)):
+            unique_id = ObjectId()
 
-            diccionario_actual = {'fecha':fechas_eltiempo[element].get_text(), 
+
+            diccionario_actual = {'_id':unique_id,
+                                'fecha':fechas_eltiempo[element].get_text(), 
                                 'titulo':titulo_eltiempo[element].get_text(), 
                                 'categoria':categoria_eltiempo[element].get_text(),
                                 'texto':texto_pequeño_eltiempo[element].get_text()
@@ -56,19 +61,29 @@ def recoleccion_portafolio( no_inicial, no_final, termino):
 
             #Unir resultados
             lista_portafolio.append(diccionario_actual)
+            
 
+        if lista_portafolio: print(lista_portafolio)
+        #Cada vez que lea una pagina se sube a una colección de Mongo
+        client = pymongo.MongoClient(conexion_mongo)
+        #Crear base de datos
+        #Cambiar nombre a Taller cuando lo este poniendo de verdad
+        #base_datos_prueba es un objeto tipo Database
+        base_datos = client.Taller02_Portafolio
 
-    #Cada vez que lea una pagina se sube a una colección de Mongo
-    client = pymongo.MongoClient(conexion_mongo)
-    #Crear base de datos
-    #Cambiar nombre a Taller cuando lo este poniendo de verdad
-    #base_datos_prueba es un objeto tipo Database
-    base_datos_usuarios = client.Taller02_Enriquecimiento
-    #Crear una colección 
-    coleccion_Portafolio = base_datos_usuarios[termino]
-    #Insertar el la data a la colección de la base de datos 
-    #Es necesario que sea un diccionario
-    variable = coleccion_Portafolio.insert_many(lista_portafolio)
+        #Crear una colección 
+        if termino not in base_datos.list_collection_names():
+            base_datos.create_collection(termino)
+
+        #Crear una colección 
+        coleccion_Portafolio = base_datos[termino]
+        #Insertar el la data a la colección de la base de datos 
+        #Es necesario que sea un diccionario
+        for document in lista_portafolio:
+            try:
+                coleccion_Portafolio.insert_one(document)
+            except pymongo.errors.DuplicateKeyError:
+                print("Llave duplicada")
 
 
 

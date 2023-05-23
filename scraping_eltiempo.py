@@ -5,6 +5,8 @@ import random
 import time
 import pymongo
 import os
+from bson.objectid import ObjectId
+
 
 #Arreglar dos cosas de manera inicial
 
@@ -17,24 +19,27 @@ def recoleccion_eltiempo( no_inicial, no_final, termino):
 
     conexion_mongo = os.environ.get('CONEXION_MONGO')
 
+
+
     lista_eltiempo = []
 
 
     #ciclo en el rango que se quiere iterar
     for i in range (no_inicial, no_final+1):
 
-        url = 'https://www.eltiempo.com/buscar/{}?q={}'.format(i+1, termino)
+        url = "https://www.eltiempo.com/buscar/{}?q={}".format(i+1, termino)
         response = requests.get(url)
 
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, "html.parser")    
         else:
+            print("Error en respuesta")
             break
 
         #Irse a dormir 
         tiempo_sueno = random.randint(3,12)
         print(f"voy a dormir: {tiempo_sueno} minutos")
-        time.sleep(tiempo_sueno*60)
+        #time.sleep(tiempo_sueno*60)
 
         #Scrape la data de la pagina de ese tema y ese numero de pagina
 
@@ -50,8 +55,9 @@ def recoleccion_eltiempo( no_inicial, no_final, termino):
         for element in range(len(fechas_eltiempo)):
 
             link_titulo = titulo_eltiempo[element].find("a", class_="title page-link")
-
-            diccionario_actual = {'fecha':fechas_eltiempo[element].get_text(), 
+            unique_id = ObjectId()
+            diccionario_actual = {'_id':unique_id,
+                                'fecha':fechas_eltiempo[element].get_text(), 
                                 'titulo':link_titulo.get_text(), 
                                 'categoria':categoria_eltiempo[element].get_text(),
                                 'texto':texto_pequeño_eltiempo[element].get_text()
@@ -61,17 +67,28 @@ def recoleccion_eltiempo( no_inicial, no_final, termino):
             lista_eltiempo.append(diccionario_actual)
 
 
-    #Cada vez que lea una pagina se sube a una colección de Mongo
-    client = pymongo.MongoClient(conexion_mongo)
-    #Crear base de datos
-    #Cambiar nombre a Taller cuando lo este poniendo de verdad
-    #base_datos_prueba es un objeto tipo Database
-    base_datos_usuarios = client.Taller02_Enriquecimiento
-    #Crear una colección 
-    coleccion_ElTiempo = base_datos_usuarios[termino]
-    #Insertar el la data a la colección de la base de datos 
-    #Es necesario que sea un diccionario
-    variable = coleccion_ElTiempo.insert_many(lista_eltiempo)
+        #Cada vez que lea una pagina se sube a una colección de Mongo
+        client = pymongo.MongoClient(conexion_mongo)
+        #Crear base de datos
+        #Cambiar nombre a Taller cuando lo este poniendo de verdad
+        #base_datos_prueba es un objeto tipo Database
+        base_datos = client.Taller02_ElTiempo
+        #Crear una colección 
+        if termino not in base_datos.list_collection_names():
+            base_datos.create_collection(termino)
+
+        #añadir a coleccion
+        coleccion_ElTiempo = base_datos[termino]
+        #Insertar el la data a la colección de la base de datos 
+        #Es necesario que sea un diccionario
+        for document in lista_eltiempo:
+            try:
+                coleccion_ElTiempo.insert_one(document)
+            except pymongo.errors.DuplicateKeyError:
+                print("Llave duplicada")
+
+        print("---------")
+
 
 
 
