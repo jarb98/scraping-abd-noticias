@@ -4,6 +4,7 @@ import re
 import random
 import time
 import pymongo
+import os
 
 #Arreglar dos cosas de manera inicial
 
@@ -13,6 +14,8 @@ import pymongo
 
 
 def recoleccion_eltiempo( no_inicial, no_final, termino):
+
+    conexion_mongo = os.environ.get('CONEXION_MONGO')
 
     lista_eltiempo = []
 
@@ -59,7 +62,7 @@ def recoleccion_eltiempo( no_inicial, no_final, termino):
 
 
     #Cada vez que lea una pagina se sube a una colección de Mongo
-    client = pymongo.MongoClient("mongodb+srv://jiarbelaez:Aurelio@cluster0.052qtis.mongodb.net/")
+    client = pymongo.MongoClient(conexion_mongo)
     #Crear base de datos
     #Cambiar nombre a Taller cuando lo este poniendo de verdad
     #base_datos_prueba es un objeto tipo Database
